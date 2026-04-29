@@ -17,6 +17,7 @@ export default async function handler(req, res) {
     // We pass the incoming request stream directly to the blob put method
     const blob = await put(filename, req, {
       access: 'public',
+      addRandomSuffix: true,
     });
 
     return res.status(200).json(blob);
