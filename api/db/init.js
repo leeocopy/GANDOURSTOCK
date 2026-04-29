@@ -9,6 +9,7 @@ export default async function handler(req, res) {
         color VARCHAR(50),
         color_name VARCHAR(100),
         image_url TEXT,
+        image_urls JSONB,
         stock_initial INT DEFAULT 1,
         stock_sold INT DEFAULT 0,
         measurements JSONB,

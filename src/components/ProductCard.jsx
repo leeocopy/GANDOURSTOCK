@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion'
 import { computeRemaining, getStockStatus, dominantSize } from '../utils/sizingEngine'
-import { Trash2, ShoppingBag, ImageOff, Layers, Edit } from 'lucide-react'
+import { Trash2, ShoppingBag, ImageOff, Layers, Edit, Download, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const FLOAT_CONFIGS = [
   { y: 7,  dur: 5.8, delay: 0   },
@@ -95,6 +95,34 @@ export default function ProductCard({ product, index, onDelete, onSellOne, onEdi
 
   const [burstKey,     setBurstKey]     = useState(null)
   const [sellDisabled, setSellDisabled] = useState(false)
+  const [imgIndex,     setImgIndex]     = useState(0)
+
+  const urls = product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls : (product.imageUrl ? [product.imageUrl] : [])
+  const currentImg = urls[imgIndex]
+  const hasImages = urls.length > 0
+
+  const handleDownload = async (e) => {
+    e.stopPropagation()
+    if (!currentImg) return
+    try {
+      const response = await fetch(currentImg)
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `gandoura-${product.id}-${imgIndex}.jpg`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Download failed', err)
+      window.open(currentImg, '_blank')
+    }
+  }
+
+  const nextImg = (e) => { e.stopPropagation(); setImgIndex((prev) => (prev + 1) % urls.length) }
+  const prevImg = (e) => { e.stopPropagation(); setImgIndex((prev) => (prev - 1 + urls.length) % urls.length) }
 
   /* 3-D tilt */
   const cardRef  = useRef(null)
@@ -153,12 +181,43 @@ export default function ProductCard({ product, index, onDelete, onSellOne, onEdi
         className="relative w-full aspect-[3/4] flex-shrink-0 overflow-hidden"
         style={{ background: `linear-gradient(160deg, ${product.color}18, rgba(0,0,0,0.35))` }}
       >
-        {hasImage ? (
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
+        {hasImages ? (
+          <>
+            <img
+              src={currentImg}
+              alt={product.name}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+            {/* Carousel Controls */}
+            {urls.length > 1 && (
+              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                <button onClick={prevImg} className="p-1.5 rounded-full bg-black/50 text-white/70 hover:text-white hover:bg-black/80 backdrop-blur-sm">
+                  <ChevronLeft size={16} />
+                </button>
+                <button onClick={nextImg} className="p-1.5 rounded-full bg-black/50 text-white/70 hover:text-white hover:bg-black/80 backdrop-blur-sm">
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
+            {/* Image Dots */}
+            {urls.length > 1 && (
+              <div className="absolute bottom-16 inset-x-0 flex justify-center gap-1 z-20">
+                {urls.map((_, i) => (
+                  <div key={i} className={`w-1 h-1 rounded-full transition-all ${i === imgIndex ? 'bg-cyan-neon w-3' : 'bg-white/30'}`} />
+                ))}
+              </div>
+            )}
+            {/* Download Button */}
+            <motion.button
+              onClick={handleDownload}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="absolute top-3 left-3 z-30 w-8 h-8 flex items-center justify-center rounded-xl bg-black/40 text-white/60 hover:text-cyan-neon hover:bg-black/60 backdrop-blur-md border border-white/5 opacity-0 group-hover:opacity-100 transition-all"
+              title="Télécharger l'image"
+            >
+              <Download size={14} />
+            </motion.button>
+          </>
         ) : (
           <div
             className="w-full h-full flex flex-col items-center justify-center gap-3"
@@ -173,11 +232,11 @@ export default function ProductCard({ product, index, onDelete, onSellOne, onEdi
           </div>
         )}
 
-        {/* Profile tag top-left */}
+        {/* Profile tag top-left (moved down slightly to not conflict with download) */}
         {dominant.profile && dominant.profile !== '—' && (
           <div
-            className="absolute top-3 left-3 z-10 px-2 py-1 rounded-lg flex items-center"
-            style={{ background: 'rgba(5,7,10,0.6)', backdropFilter: 'blur(8px)', border: `1px solid ${sizeSt.border}` }}
+            className="absolute top-13 left-3 z-10 px-2 py-1 rounded-lg flex items-center"
+            style={{ background: 'rgba(5,7,10,0.6)', backdropFilter: 'blur(8px)', border: `1px solid ${sizeSt.border}`, marginTop: '34px' }}
           >
             <span className="text-[9px] font-bold font-mono tracking-wider uppercase" style={{ color: sizeSt.text }}>
               Profil {dominant.profile}

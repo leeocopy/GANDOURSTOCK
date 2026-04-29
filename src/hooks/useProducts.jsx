@@ -37,6 +37,7 @@ export function ProductProvider({ children }) {
       stockInitial: qty,
       stockSold:    0,
       imageUrl:     formData.imageUrl  || '',
+      imageUrls:    formData.imageUrls || [],
       units,
     }
 
@@ -116,13 +117,14 @@ export function ProductProvider({ children }) {
       colorName:    formData.colorName || '',
       stockInitial: qty,
       imageUrl:     formData.imageUrl,
+      imageUrls:    formData.imageUrls || [],
       units,
     };
 
     // Optimistic
     setProducts(prev => prev.map(p => {
       if (p.id !== id) return p;
-      return { ...p, ...updatePayload, imageUrl: formData.imageUrl || p.imageUrl };
+      return { ...p, ...updatePayload, imageUrl: formData.imageUrl || p.imageUrl, imageUrls: formData.imageUrls || p.imageUrls || [] };
     }))
 
     try {

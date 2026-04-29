@@ -173,7 +173,8 @@ export default function AddProductForm({ onBack, initialProduct }) {
   const [stockQty,    setStockQty]    = useState(initialProduct?.stockInitial || 1)
   const [units,       setUnits]       = useState(initialProduct?.units || [EMPTY_UNIT()])
   const [imageUrl,    setImageUrl]    = useState(initialProduct?.imageUrl || '')
-  const [preview,     setPreview]     = useState(initialProduct?.imageUrl || null)
+  const [imageUrls,   setImageUrls]   = useState(initialProduct?.imageUrls || (initialProduct?.imageUrl ? [initialProduct.imageUrl] : []))
+  const [previews,    setPreviews]    = useState(initialProduct?.imageUrls || (initialProduct?.imageUrl ? [initialProduct.imageUrl] : []))
   const [dragging,    setDragging]    = useState(false)
   const [errors,      setErrors]      = useState({})
   const [success,     setSuccess]     = useState(false)
@@ -235,7 +236,7 @@ export default function AddProductForm({ onBack, initialProduct }) {
     
     // Immediate local preview
     const reader = new FileReader()
-    reader.onload = (e) => setPreview(e.target.result)
+    reader.onload = (e) => setPreviews(prev => [...prev, e.target.result])
     reader.readAsDataURL(file)
 
     // Upload to Vercel Blob API
@@ -247,16 +248,28 @@ export default function AddProductForm({ onBack, initialProduct }) {
       });
       const data = await res.json();
       if (data.url) {
-        setImageUrl(data.url)
+        setImageUrls(prev => [...prev, data.url])
+        // If it's the first image, set it as the main imageUrl
+        if (!imageUrl) setImageUrl(data.url)
       } else {
         console.error('Upload failed:', data.error)
-        window.alert("Erreur: L'image n'a pas pu être sauvegardée. Vérifiez que Vercel Blob est bien configuré et que vous avez fait un Redeploy. Erreur: " + (data.error || 'Inconnue'))
+        window.alert("Erreur: L'image n'a pas pu être sauvegardée. Erreur: " + (data.error || 'Inconnue'))
       }
     } catch (e) {
       console.error('Upload error:', e)
       window.alert("Erreur réseau ou fichier trop volumineux (max 4.5MB).")
     } finally {
       setUploading(false)
+    }
+  }
+
+  const removePhoto = (idx) => {
+    const urlToRemove = imageUrls[idx]
+    setImageUrls(prev => prev.filter((_, i) => i !== idx))
+    setPreviews(prev => prev.filter((_, i) => i !== idx))
+    // If we removed the main image, pick another one
+    if (imageUrl === urlToRemove) {
+      setImageUrl(imageUrls.find((url, i) => i !== idx) || '')
     }
   }
 
@@ -287,9 +300,9 @@ export default function AddProductForm({ onBack, initialProduct }) {
     }))
 
     if (initialProduct) {
-      updateProduct(initialProduct.id, { name, color, colorName, stockInitial: enrichedUnits.length, units: enrichedUnits, imageUrl })
+      updateProduct(initialProduct.id, { name, color, colorName, stockInitial: enrichedUnits.length, units: enrichedUnits, imageUrl, imageUrls })
     } else {
-      addProduct({ name, color, colorName, stockInitial: enrichedUnits.length, units: enrichedUnits, imageUrl })
+      addProduct({ name, color, colorName, stockInitial: enrichedUnits.length, units: enrichedUnits, imageUrl, imageUrls })
     }
     setSuccess(true)
     setTimeout(onBack, 1600)
@@ -334,75 +347,78 @@ export default function AddProductForm({ onBack, initialProduct }) {
 
           {/* Photo Upload */}
           <div>
-            <label className="label-glass">Photo du Produit</label>
-            <div
-              onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={(e) => { e.preventDefault(); setDragging(false); handlePhoto(e.dataTransfer.files[0]) }}
-              onClick={() => fileRef.current?.click()}
-              className="relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 w-48 aspect-[3/4]"
-              style={{
-                border: `2px dashed ${dragging ? 'rgba(0,242,255,0.6)' : 'rgba(0,242,255,0.15)'}`,
-                background: dragging ? 'rgba(0,242,255,0.05)' : 'rgba(255,255,255,0.02)',
-              }}
-            >
-              <input ref={fileRef} type="file" accept="image/*" className="hidden"
-                onChange={(e) => handlePhoto(e.target.files[0])} />
-
-              {/* Scanning Overlay */}
-              <AnimatePresence>
-                {isScanning && (
-                  <motion.div
-                    key="scanner"
-                    initial={{ y: '-100%' }}
-                    animate={{ y: '100%' }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 1, ease: 'linear' }}
-                    className="absolute inset-0 z-20 pointer-events-none"
-                    style={{
-                      height: '50%',
-                      background: 'linear-gradient(to bottom, transparent, rgba(0,242,255,0.4))',
-                      borderBottom: '2px solid #00f2ff',
-                      boxShadow: '0 4px 20px rgba(0,242,255,0.6)'
-                    }}
-                  />
-                )}
-              </AnimatePresence>
-
-              {preview ? (
-                <>
-                  <img src={preview} alt="preview" className={`w-full h-full object-cover transition-opacity duration-300 ${uploading ? 'opacity-50' : 'opacity-100'}`} />
-                  {uploading ? (
-                    <div className="absolute inset-0 flex items-center justify-center z-10">
-                      <div className="w-5 h-5 border-2 border-cyan-neon/30 border-t-cyan-neon rounded-full animate-spin" />
-                    </div>
-                  ) : (
-                    <div className="absolute inset-0 bg-black/0 hover:bg-black/50 transition-all flex items-center justify-center opacity-0 hover:opacity-100 z-10">
-                      <span className="text-white text-xs font-semibold bg-black/40 px-3 py-1.5 rounded-xl">
-                        Changer la photo
-                      </span>
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setPreview(null); setImageUrl('') }}
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 flex items-center justify-center text-white/60 hover:text-white hover:bg-red-600 transition-all z-30"
-                  >
-                    <X size={12} />
-                  </button>
-                </>
-              ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                  <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2.2, repeat: Infinity }}>
-                    <ImagePlus size={30} className="text-cyan-neon/25" />
-                  </motion.div>
-                  <div className="text-center">
-                    <p className="text-sm text-white/35">Déposer une photo ici</p>
-                    <p className="text-xs text-white/20 font-mono mt-0.5">ou cliquer pour parcourir</p>
+            <label className="label-glass">Photos du Produit ({imageUrls.length})</label>
+            <div className="flex flex-wrap gap-3 mb-4">
+              {/* Previews */}
+              {previews.map((prev, idx) => (
+                <div key={idx} className="relative w-24 aspect-[3/4] rounded-xl overflow-hidden group/img border border-white/10 ring-1 ring-white/5">
+                  <img src={prev} alt="preview" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl(imageUrls[idx])}
+                      className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md transition-all ${imageUrl === imageUrls[idx] ? 'bg-cyan-neon text-black' : 'bg-white/20 text-white hover:bg-white/40'}`}
+                    >
+                      {imageUrl === imageUrls[idx] ? 'Principale' : 'Mettre en 1er'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(idx)}
+                      className="p-1 rounded-full bg-red-500/80 text-white hover:bg-red-600 transition-all"
+                    >
+                      <X size={12} />
+                    </button>
                   </div>
                 </div>
-              )}
+              ))}
+
+              {/* Add Button */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={(e) => { e.preventDefault(); setDragging(false); Array.from(e.dataTransfer.files).forEach(handlePhoto) }}
+                onClick={() => fileRef.current?.click()}
+                className="relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 w-24 aspect-[3/4] flex flex-col items-center justify-center gap-2"
+                style={{
+                  border: `2px dashed ${dragging ? 'rgba(0,242,255,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                  background: dragging ? 'rgba(0,242,255,0.05)' : 'rgba(255,255,255,0.02)',
+                }}
+              >
+                <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
+                  onChange={(e) => Array.from(e.target.files).forEach(handlePhoto)} />
+                
+                {uploading ? (
+                  <div className="w-5 h-5 border-2 border-cyan-neon/30 border-t-cyan-neon rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <ImagePlus size={20} className="text-white/20" />
+                    <span className="text-[8px] font-mono uppercase text-white/25">Ajouter</span>
+                  </>
+                )}
+
+                {/* Scanning Overlay */}
+                <AnimatePresence>
+                  {isScanning && (
+                    <motion.div
+                      key="scanner"
+                      initial={{ y: '-100%' }}
+                      animate={{ y: '100%' }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 1, ease: 'linear' }}
+                      className="absolute inset-0 z-20 pointer-events-none"
+                      style={{
+                        height: '30%',
+                        background: 'linear-gradient(to bottom, transparent, rgba(0,242,255,0.3))',
+                        borderBottom: '1px solid #00f2ff',
+                      }}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
+            {previews.length === 0 && !uploading && (
+              <p className="text-[10px] text-white/20 font-mono italic">Glissez une ou plusieurs photos ici pour commencer.</p>
+            )}
           </div>
 
           {/* Name */}

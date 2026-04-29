@@ -11,6 +11,7 @@ export default async function handler(req, res) {
         color: row.color,
         colorName: row.color_name,
         imageUrl: row.image_url,
+        imageUrls: row.image_urls || [],
         stockInitial: row.stock_initial,
         stockSold: row.stock_sold,
         units: row.measurements || [],
@@ -23,8 +24,8 @@ export default async function handler(req, res) {
       const p = req.body;
       const id = p.id || `gnd-${Date.now()}`;
       await sql`
-        INSERT INTO gandouras (id, name, color, color_name, image_url, stock_initial, stock_sold, measurements, created_at)
-        VALUES (${id}, ${p.name}, ${p.color}, ${p.colorName}, ${p.imageUrl}, ${p.stockInitial}, ${p.stockSold || 0}, ${JSON.stringify(p.units)}, NOW())
+        INSERT INTO gandouras (id, name, color, color_name, image_url, image_urls, stock_initial, stock_sold, measurements, created_at)
+        VALUES (${id}, ${p.name}, ${p.color}, ${p.colorName}, ${p.imageUrl}, ${JSON.stringify(p.imageUrls || [])}, ${p.stockInitial}, ${p.stockSold || 0}, ${JSON.stringify(p.units)}, NOW())
       `;
       return res.status(201).json({ success: true, id });
     } 
@@ -40,7 +41,7 @@ export default async function handler(req, res) {
       } else {
         await sql`
           UPDATE gandouras 
-          SET name = ${p.name}, color = ${p.color}, color_name = ${p.colorName}, image_url = ${p.imageUrl}, stock_initial = ${p.stockInitial}, measurements = ${JSON.stringify(p.units)}
+          SET name = ${p.name}, color = ${p.color}, color_name = ${p.colorName}, image_url = ${p.imageUrl}, image_urls = ${JSON.stringify(p.imageUrls || [])}, stock_initial = ${p.stockInitial}, measurements = ${JSON.stringify(p.units)}
           WHERE id = ${p.id}
         `;
       }
