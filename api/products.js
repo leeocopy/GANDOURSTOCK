@@ -8,12 +8,12 @@ export default async function handler(req, res) {
           SELECT 
             CAST(COALESCE(SUM(sale_price), 0) AS FLOAT) as total_revenue,
             CAST(COALESCE(SUM(profit), 0) AS FLOAT) as total_profit
-          FROM sales;
+          FROM public.sales;
         `;
         return res.status(200).json(salesStats.rows[0]);
       }
 
-      const { rows } = await sql`SELECT * FROM gandouras ORDER BY created_at DESC;`;
+      const { rows } = await sql`SELECT * FROM public.gandouras ORDER BY created_at DESC;`;
       // Map database schema back to frontend model
       const products = rows.map(row => ({
         id: row.id,
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       const p = req.body;
       const id = p.id || `gnd-${Date.now()}`;
       await sql`
-        INSERT INTO gandouras (id, name, color, color_name, image_url, image_urls, stock_initial, stock_sold, measurements, created_at)
+        INSERT INTO public.gandouras (id, name, color, color_name, image_url, image_urls, stock_initial, stock_sold, measurements, created_at)
         VALUES (${id}, ${p.name}, ${p.color}, ${p.colorName}, ${p.imageUrl}, ${JSON.stringify(p.imageUrls || [])}, ${p.stockInitial}, ${p.stockSold || 0}, ${JSON.stringify(p.units)}, NOW())
       `;
       return res.status(201).json({ success: true, id });
@@ -51,14 +51,14 @@ export default async function handler(req, res) {
         const cost = 50; // Fixed cost as per user request
         const profit = price - cost;
 
-        await sql`UPDATE gandouras SET stock_sold = ${soldCount} WHERE id = ${p.id}`;
+        await sql`UPDATE public.gandouras SET stock_sold = ${soldCount} WHERE id = ${p.id}`;
         await sql`
-          INSERT INTO sales (product_id, sale_price, cost, profit)
+          INSERT INTO public.sales (product_id, sale_price, cost, profit)
           VALUES (${p.id}, ${price}, ${cost}, ${profit})
         `;
       } else {
         await sql`
-          UPDATE gandouras 
+          UPDATE public.gandouras 
           SET name = ${p.name}, color = ${p.color}, color_name = ${p.colorName}, image_url = ${p.imageUrl}, image_urls = ${JSON.stringify(p.imageUrls || [])}, stock_initial = ${p.stockInitial}, measurements = ${JSON.stringify(p.units)}
           WHERE id = ${p.id}
         `;
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
     else if (req.method === 'DELETE') {
       const { id } = req.query;
       if (!id) return res.status(400).json({ error: 'Missing ID' });
-      await sql`DELETE FROM gandouras WHERE id = ${id}`;
+      await sql`DELETE FROM public.gandouras WHERE id = ${id}`;
       return res.status(200).json({ success: true });
     }
 

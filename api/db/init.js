@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   try {
     // 1. Ensure gandouras table exists
     await sql`
-      CREATE TABLE IF NOT EXISTS gandouras (
+      CREATE TABLE IF NOT EXISTS public.gandouras (
         id VARCHAR(255) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         color VARCHAR(50),
@@ -17,11 +17,11 @@ export default async function handler(req, res) {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `;
-    status.push('Table "gandouras" checked/created.');
+    status.push('Table "public.gandouras" checked/created.');
 
     // 2. Add image_urls column if it doesn't exist
     try {
-      await sql`ALTER TABLE gandouras ADD COLUMN IF NOT EXISTS image_urls JSONB DEFAULT '[]'::jsonb;`;
+      await sql`ALTER TABLE public.gandouras ADD COLUMN IF NOT EXISTS image_urls JSONB DEFAULT '[]'::jsonb;`;
       status.push('Column "image_urls" added/verified.');
     } catch (e) {
       console.error('Error adding image_urls:', e);
@@ -30,16 +30,16 @@ export default async function handler(req, res) {
 
     // 3. Ensure sales table exists
     await sql`
-      CREATE TABLE IF NOT EXISTS sales (
+      CREATE TABLE IF NOT EXISTS public.sales (
         id SERIAL PRIMARY KEY,
-        product_id VARCHAR(255) REFERENCES gandouras(id) ON DELETE CASCADE,
+        product_id VARCHAR(255) REFERENCES public.gandouras(id) ON DELETE CASCADE,
         sale_price NUMERIC(10, 2) NOT NULL,
         cost NUMERIC(10, 2) DEFAULT 50.00,
         profit NUMERIC(10, 2) NOT NULL,
         sold_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `;
-    status.push('Table "sales" checked/created.');
+    status.push('Table "public.sales" checked/created.');
 
     return res.status(200).json({ 
       success: true, 
