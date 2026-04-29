@@ -15,6 +15,15 @@ export default async function handler(req, res) {
         measurements JSONB,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS sales (
+        id SERIAL PRIMARY KEY,
+        product_id VARCHAR(255) REFERENCES gandouras(id) ON DELETE CASCADE,
+        sale_price NUMERIC(10, 2) NOT NULL,
+        cost NUMERIC(10, 2) DEFAULT 50.00,
+        profit NUMERIC(10, 2) NOT NULL,
+        sold_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
     `;
     return res.status(200).json({ success: true, message: 'Table gandouras initialized correctly.', result });
   } catch (error) {

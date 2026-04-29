@@ -5,6 +5,17 @@ const ProductContext = createContext(null)
 
 export function ProductProvider({ children }) {
   const [products, setProducts] = useState([])
+  const [salesStats, setSalesStats] = useState({ total_revenue: 0, total_profit: 0 })
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await fetch('/api/products?type=stats')
+      const data = await res.json()
+      if (data) setSalesStats(data)
+    } catch (err) {
+      console.error('Failed to load stats', err)
+    }
+  }, [])
 
   useEffect(() => {
     // Fetch products on load
@@ -14,7 +25,9 @@ export function ProductProvider({ children }) {
         if (Array.isArray(data)) setProducts(data)
       })
       .catch(err => console.error('Failed to load products', err))
-  }, [])
+    
+    fetchStats()
+  }, [fetchStats])
 
   /** Add a new product. formData.units is an array of { length, chest }. */
   const addProduct = useCallback(async (formData) => {
@@ -57,7 +70,7 @@ export function ProductProvider({ children }) {
   }, [])
 
   /** Sell one unit — increment stockSold by 1. */
-  const sellOne = useCallback(async (id) => {
+  const sellOne = useCallback(async (id, price) => {
     const target = products.find(p => p.id === id);
     if (!target) return;
     const newSold = Math.min(target.stockSold + 1, target.stockInitial);
@@ -69,12 +82,13 @@ export function ProductProvider({ children }) {
       await fetch('/api/products', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, action: 'sell', stockSold: newSold })
+        body: JSON.stringify({ id, action: 'sell', stockSold: newSold, price })
       });
+      fetchStats(); // Refresh financial stats
     } catch (e) {
       console.error(e)
     }
-  }, [products])
+  }, [products, fetchStats])
 
   /** Manual set of sold count. */
   const updateSold = useCallback(async (id, sold) => {
@@ -158,7 +172,7 @@ export function ProductProvider({ children }) {
   }
 
   return (
-    <ProductContext.Provider value={{ products, addProduct, updateProduct, sellOne, updateSold, deleteProduct, stats }}>
+    <ProductContext.Provider value={{ products, salesStats, addProduct, updateProduct, sellOne, updateSold, deleteProduct, stats }}>
       {children}
     </ProductContext.Provider>
   )

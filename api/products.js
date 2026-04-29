@@ -3,6 +3,16 @@ import { sql } from '@vercel/postgres';
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
+      if (req.query.type === 'stats') {
+        const salesStats = await sql`
+          SELECT 
+            COALESCE(SUM(sale_price), 0) as total_revenue,
+            COALESCE(SUM(profit), 0) as total_profit
+          FROM sales;
+        `;
+        return res.status(200).json(salesStats.rows[0]);
+      }
+
       const { rows } = await sql`SELECT * FROM gandouras ORDER BY created_at DESC;`;
       // Map database schema back to frontend model
       const products = rows.map(row => ({
@@ -37,7 +47,15 @@ export default async function handler(req, res) {
       // If updating the whole product vs just selling one
       if (p.action === 'sell') {
         const soldCount = p.stockSold;
+        const price = parseFloat(p.price) || 0;
+        const cost = 50; // Fixed cost as per user request
+        const profit = price - cost;
+
         await sql`UPDATE gandouras SET stock_sold = ${soldCount} WHERE id = ${p.id}`;
+        await sql`
+          INSERT INTO sales (product_id, sale_price, cost, profit)
+          VALUES (${p.id}, ${price}, ${cost}, ${profit})
+        `;
       } else {
         await sql`
           UPDATE gandouras 

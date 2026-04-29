@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Package2, TrendingDown, TrendingUp, AlertTriangle, PlusCircle, Search } from 'lucide-react'
+import { Package2, TrendingDown, TrendingUp, AlertTriangle, PlusCircle, Search, Coins, Wallet } from 'lucide-react'
 import { useProducts } from '../hooks/useProducts'
 import ProductCard from '../components/ProductCard'
 
@@ -47,7 +47,7 @@ function FilterPill({ active, onClick, children }) {
 }
 
 export default function DashboardPage({ onNavigate }) {
-  const { products, stats, deleteProduct, sellOne } = useProducts()
+  const { products, stats, salesStats, deleteProduct, sellOne } = useProducts()
   const [profileFilter, setProfileFilter] = useState('Tous')
   const [heightSearch, setHeightSearch] = useState('')
 
@@ -84,11 +84,13 @@ export default function DashboardPage({ onNavigate }) {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
-        <StatCard icon={Package2}     label="Produits"     value={stats.totalProducts}  color="#00f2ff" delay={0}    />
-        <StatCard icon={TrendingUp}   label="Stock Restant" value={stats.totalRemaining} color="#22c55e" delay={0.05} />
-        <StatCard icon={TrendingDown} label="Vendus"        value={stats.totalSold}      color="#f59e0b" delay={0.1}  />
-        <StatCard icon={AlertTriangle} label="Épuisés"      value={stats.outOfStock}     color="#ef4444" delay={0.15} />
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-7">
+        <StatCard icon={Package2}     label="Produits"      value={stats.totalProducts}  color="#00f2ff" delay={0}    />
+        <StatCard icon={TrendingUp}   label="Stock Restant"  value={stats.totalRemaining} color="#22c55e" delay={0.05} />
+        <StatCard icon={TrendingDown} label="Vendus"         value={stats.totalSold}      color="#f59e0b" delay={0.1}  />
+        <StatCard icon={AlertTriangle} label="Épuisés"       value={stats.outOfStock}     color="#ef4444" delay={0.15} />
+        <StatCard icon={Coins}         label="Ventes (DH)"   value={Math.round(salesStats.total_revenue)} color="#a855f7" delay={0.2} />
+        <StatCard icon={Wallet}        label="Bénéfice (DH)" value={Math.round(salesStats.total_profit)} color="#ec4899" delay={0.25} />
       </div>
 
       {/* Smart Filters & Search */}

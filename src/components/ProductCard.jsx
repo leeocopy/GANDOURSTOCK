@@ -96,6 +96,8 @@ export default function ProductCard({ product, index, onDelete, onSellOne, onEdi
   const [burstKey,     setBurstKey]     = useState(null)
   const [sellDisabled, setSellDisabled] = useState(false)
   const [imgIndex,     setImgIndex]     = useState(0)
+  const [showSellModal, setShowSellModal] = useState(false)
+  const [sellPrice,    setSellPrice]    = useState('')
 
   const urls = product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls : (product.imageUrl ? [product.imageUrl] : [])
   const currentImg = urls[imgIndex]
@@ -141,9 +143,20 @@ export default function ProductCard({ product, index, onDelete, onSellOne, onEdi
 
   const handleSell = () => {
     if (isSoldOut || sellDisabled) return
+    setShowSellModal(true)
+  }
+
+  const confirmSell = () => {
+    const price = parseFloat(sellPrice) || 0
+    if (price <= 0) {
+      alert("Veuillez entrer un prix de vente valide.")
+      return
+    }
     setBurstKey(Date.now())
     setSellDisabled(true)
-    onSellOne(product.id)
+    onSellOne(product.id, price)
+    setShowSellModal(false)
+    setSellPrice('')
     setTimeout(() => setSellDisabled(false), 650)
   }
 
@@ -409,6 +422,60 @@ export default function ProductCard({ product, index, onDelete, onSellOne, onEdi
           </motion.button>
         </div>
       </div>
+      {/* ── SELL MODAL ── */}
+      <AnimatePresence>
+        {showSellModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowSellModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm glass-card p-6 shadow-2xl border border-cyan-neon/20"
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-bold text-gradient-cyan mb-2">Vendre ce produit</h3>
+              <p className="text-white/40 text-xs font-mono mb-6 uppercase tracking-wider">
+                Entrez le prix de vente final (DH)
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] text-white/30 font-mono uppercase mb-1.5 block">Prix de Vente (DH)</label>
+                  <input
+                    autoFocus
+                    type="number"
+                    value={sellPrice}
+                    onChange={e => setSellPrice(e.target.value)}
+                    placeholder="ex: 150"
+                    className="input-glass w-full text-center text-xl font-bold py-3"
+                    onKeyDown={e => e.key === 'Enter' && confirmSell()}
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setShowSellModal(false)}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white/40 hover:text-white transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={confirmSell}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-cyan-neon text-black shadow-lg shadow-cyan-neon/20 hover:scale-105 active:scale-95 transition-all"
+                  >
+                    Confirmer
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }
