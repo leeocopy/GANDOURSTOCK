@@ -13,13 +13,13 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Restore session from sessionStorage
-    const session = sessionStorage.getItem('gandoura_auth')
+    // Restore session from localStorage to persist across tabs/sessions
+    const session = localStorage.getItem('gandoura_auth')
     if (session) {
       try {
         setUser(JSON.parse(session))
       } catch {
-        sessionStorage.removeItem('gandoura_auth')
+        localStorage.removeItem('gandoura_auth')
       }
     }
     setLoading(false)
@@ -32,7 +32,7 @@ export function AuthProvider({ children }) {
     ) {
       const userData = { username: 'admin', role: 'owner', loginAt: new Date().toISOString() }
       setUser(userData)
-      sessionStorage.setItem('gandoura_auth', JSON.stringify(userData))
+      localStorage.setItem('gandoura_auth', JSON.stringify(userData))
       return { success: true }
     }
     return { success: false, error: 'Identifiants incorrects. Réessayez.' }
@@ -40,7 +40,7 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     setUser(null)
-    sessionStorage.removeItem('gandoura_auth')
+    localStorage.removeItem('gandoura_auth')
   }
 
   return (
