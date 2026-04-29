@@ -1,6 +1,7 @@
 import { sql } from '@vercel/postgres';
 
 export default async function handler(req, res) {
+  const status = [];
   try {
     // 1. Ensure gandouras table exists
     await sql`
@@ -16,12 +17,15 @@ export default async function handler(req, res) {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `;
+    status.push('Table "gandouras" checked/created.');
 
     // 2. Add image_urls column if it doesn't exist
     try {
-      await sql`ALTER TABLE gandouras ADD COLUMN IF NOT EXISTS image_urls JSONB;`;
+      await sql`ALTER TABLE gandouras ADD COLUMN IF NOT EXISTS image_urls JSONB DEFAULT '[]'::jsonb;`;
+      status.push('Column "image_urls" added/verified.');
     } catch (e) {
-      console.log('image_urls column might already exist');
+      console.error('Error adding image_urls:', e);
+      status.push('Error adding "image_urls": ' + e.message);
     }
 
     // 3. Ensure sales table exists
@@ -35,10 +39,18 @@ export default async function handler(req, res) {
         sold_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `;
+    status.push('Table "sales" checked/created.');
 
-    return res.status(200).json({ success: true, message: 'Database schema updated successfully.' });
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Database initialization complete.',
+      details: status
+    });
   } catch (error) {
     console.error('Error initializing database:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ 
+      error: error.message,
+      details: status
+    });
   }
 }
