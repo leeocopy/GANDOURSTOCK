@@ -13,7 +13,6 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Restore session from localStorage to persist across tabs/sessions
     const session = localStorage.getItem('gandoura_auth')
     if (session) {
       try {
@@ -25,17 +24,27 @@ export function AuthProvider({ children }) {
     setLoading(false)
   }, [])
 
-  const login = (username, password) => {
-    if (
-      username.trim().toLowerCase() === ADMIN_CREDENTIALS.username &&
-      password === ADMIN_CREDENTIALS.password
-    ) {
-      const userData = { username: 'admin', role: 'owner', loginAt: new Date().toISOString() }
-      setUser(userData)
-      localStorage.setItem('gandoura_auth', JSON.stringify(userData))
-      return { success: true }
+  const login = async (username, password) => {
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        // Store user and token
+        const userData = { ...data.user, token: data.token, loginAt: new Date().toISOString() };
+        setUser(userData);
+        localStorage.setItem('gandoura_auth', JSON.stringify(userData));
+        return { success: true };
+      }
+      return { success: false, error: data.error || 'Identifiants incorrects.' };
+    } catch (e) {
+      console.error(e);
+      return { success: false, error: 'Erreur réseau.' };
     }
-    return { success: false, error: 'Identifiants incorrects. Réessayez.' }
   }
 
   const logout = () => {

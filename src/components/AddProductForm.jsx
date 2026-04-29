@@ -177,6 +177,7 @@ export default function AddProductForm({ onBack, initialProduct }) {
   const [dragging,    setDragging]    = useState(false)
   const [errors,      setErrors]      = useState({})
   const [success,     setSuccess]     = useState(false)
+  const [uploading,   setUploading]   = useState(false)
   
   const [isScanning,  setScanning]    = useState(false)
   const prevUnitsRef  = useRef(units)
@@ -229,14 +230,32 @@ export default function AddProductForm({ onBack, initialProduct }) {
   }
 
   /* ── Photo ── */
-  const handlePhoto = (file) => {
+  const handlePhoto = async (file) => {
     if (!file || !file.type.startsWith('image/')) return
+    
+    // Immediate local preview
     const reader = new FileReader()
-    reader.onload = (e) => {
-      setPreview(e.target.result)
-      setImageUrl(e.target.result)
-    }
+    reader.onload = (e) => setPreview(e.target.result)
     reader.readAsDataURL(file)
+
+    // Upload to Vercel Blob API
+    setUploading(true)
+    try {
+      const res = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}`, {
+        method: 'POST',
+        body: file,
+      });
+      const data = await res.json();
+      if (data.url) {
+        setImageUrl(data.url)
+      } else {
+        console.error('Upload failed:', data.error)
+      }
+    } catch (e) {
+      console.error('Upload error:', e)
+    } finally {
+      setUploading(false)
+    }
   }
 
   /* ── Validation ── */
@@ -350,12 +369,18 @@ export default function AddProductForm({ onBack, initialProduct }) {
 
               {preview ? (
                 <>
-                  <img src={preview} alt="preview" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/0 hover:bg-black/50 transition-all flex items-center justify-center opacity-0 hover:opacity-100 z-10">
-                    <span className="text-white text-xs font-semibold bg-black/40 px-3 py-1.5 rounded-xl">
-                      Changer la photo
-                    </span>
-                  </div>
+                  <img src={preview} alt="preview" className={`w-full h-full object-cover transition-opacity duration-300 ${uploading ? 'opacity-50' : 'opacity-100'}`} />
+                  {uploading ? (
+                    <div className="absolute inset-0 flex items-center justify-center z-10">
+                      <div className="w-5 h-5 border-2 border-cyan-neon/30 border-t-cyan-neon rounded-full animate-spin" />
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0 bg-black/0 hover:bg-black/50 transition-all flex items-center justify-center opacity-0 hover:opacity-100 z-10">
+                      <span className="text-white text-xs font-semibold bg-black/40 px-3 py-1.5 rounded-xl">
+                        Changer la photo
+                      </span>
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setPreview(null); setImageUrl('') }}
@@ -565,9 +590,10 @@ export default function AddProductForm({ onBack, initialProduct }) {
             </button>
             <motion.button
               type="submit"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              className="flex-1 btn-cyan justify-center py-3"
+              disabled={uploading}
+              whileHover={!uploading ? { scale: 1.02 } : {}}
+              whileTap={!uploading ? { scale: 0.97 } : {}}
+              className={`flex-1 btn-cyan justify-center py-3 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <Zap size={15} />
               {initialProduct ? 'Enregistrer les modifications' : `Ajouter ${units.length} pièce${units.length > 1 ? 's' : ''}`}

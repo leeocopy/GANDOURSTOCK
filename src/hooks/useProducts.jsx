@@ -1,19 +1,23 @@
-import { createContext, useContext, useState, useCallback } from 'react'
-import { loadProducts, saveProducts, generateId } from '../data/store'
-import { computeSize, computeRemaining } from '../utils/sizingEngine'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { computeRemaining } from '../utils/sizingEngine'
 
 const ProductContext = createContext(null)
 
 export function ProductProvider({ children }) {
-  const [products, setProducts] = useState(() => loadProducts())
+  const [products, setProducts] = useState([])
 
-  const persist = useCallback((updated) => {
-    setProducts(updated)
-    saveProducts(updated)
+  useEffect(() => {
+    // Fetch products on load
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setProducts(data)
+      })
+      .catch(err => console.error('Failed to load products', err))
   }, [])
 
   /** Add a new product. formData.units is an array of { length, chest }. */
-  const addProduct = useCallback((formData) => {
+  const addProduct = useCallback(async (formData) => {
     const qty = parseInt(formData.stockInitial, 10) || 1
     const units = (formData.units || []).slice(0, qty).map((u) => {
       return {
@@ -27,39 +31,72 @@ export function ProductProvider({ children }) {
     })
 
     const newProduct = {
-      id:           generateId(),
       name:         formData.name,
       color:        formData.color     || '#888888',
       colorName:    formData.colorName || '',
       stockInitial: qty,
       stockSold:    0,
       imageUrl:     formData.imageUrl  || '',
-      createdAt:    new Date().toISOString(),
       units,
     }
-    persist([newProduct, ...products])
-    return newProduct
-  }, [products, persist])
+
+    try {
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProduct)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProducts(prev => [{ ...newProduct, id: data.id, createdAt: new Date().toISOString() }, ...prev]);
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }, [])
 
   /** Sell one unit — increment stockSold by 1. */
-  const sellOne = useCallback((id) => {
-    const updated = products.map((p) => {
-      if (p.id !== id) return p
-      return { ...p, stockSold: Math.min(p.stockSold + 1, p.stockInitial) }
-    })
-    persist(updated)
-  }, [products, persist])
+  const sellOne = useCallback(async (id) => {
+    const target = products.find(p => p.id === id);
+    if (!target) return;
+    const newSold = Math.min(target.stockSold + 1, target.stockInitial);
+    
+    // Optimistic
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, stockSold: newSold } : p))
+    
+    try {
+      await fetch('/api/products', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action: 'sell', stockSold: newSold })
+      });
+    } catch (e) {
+      console.error(e)
+    }
+  }, [products])
 
   /** Manual set of sold count. */
-  const updateSold = useCallback((id, sold) => {
-    const updated = products.map((p) =>
-      p.id === id ? { ...p, stockSold: Math.min(sold, p.stockInitial) } : p
-    )
-    persist(updated)
-  }, [products, persist])
+  const updateSold = useCallback(async (id, sold) => {
+    const target = products.find(p => p.id === id);
+    if (!target) return;
+    const newSold = Math.min(sold, target.stockInitial);
+    
+    // Optimistic
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, stockSold: newSold } : p))
+    
+    try {
+      await fetch('/api/products', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action: 'sell', stockSold: newSold })
+      });
+    } catch (e) {
+      console.error(e)
+    }
+  }, [products])
 
   /** Full update of a product. */
-  const updateProduct = useCallback((id, formData) => {
+  const updateProduct = useCallback(async (id, formData) => {
     const qty = parseInt(formData.stockInitial, 10) || 1
     const units = (formData.units || []).slice(0, qty).map((u) => {
       return {
@@ -72,24 +109,43 @@ export function ProductProvider({ children }) {
       }
     })
 
-    const updated = products.map(p => {
-      if (p.id !== id) return p
-      return {
-        ...p,
-        name:         formData.name,
-        color:        formData.color     || '#888888',
-        colorName:    formData.colorName || '',
-        stockInitial: qty,
-        imageUrl:     formData.imageUrl  || p.imageUrl,
-        units,
-      }
-    })
-    persist(updated)
-  }, [products, persist])
+    const updatePayload = {
+      id,
+      name:         formData.name,
+      color:        formData.color     || '#888888',
+      colorName:    formData.colorName || '',
+      stockInitial: qty,
+      imageUrl:     formData.imageUrl,
+      units,
+    };
 
-  const deleteProduct = useCallback((id) => {
-    persist(products.filter((p) => p.id !== id))
-  }, [products, persist])
+    // Optimistic
+    setProducts(prev => prev.map(p => {
+      if (p.id !== id) return p;
+      return { ...p, ...updatePayload, imageUrl: formData.imageUrl || p.imageUrl };
+    }))
+
+    try {
+      await fetch('/api/products', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatePayload)
+      });
+    } catch (e) {
+      console.error(e)
+    }
+  }, [])
+
+  const deleteProduct = useCallback(async (id) => {
+    // Optimistic
+    setProducts(prev => prev.filter(p => p.id !== id))
+    
+    try {
+      await fetch(`/api/products?id=${id}`, { method: 'DELETE' });
+    } catch (e) {
+      console.error(e)
+    }
+  }, [])
 
   // Global stats
   const stats = {

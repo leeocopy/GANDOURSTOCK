@@ -1,0 +1,23 @@
+import { sql } from '@vercel/postgres';
+
+export default async function handler(req, res) {
+  try {
+    const result = await sql`
+      CREATE TABLE IF NOT EXISTS gandouras (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        color VARCHAR(50),
+        color_name VARCHAR(100),
+        image_url TEXT,
+        stock_initial INT DEFAULT 1,
+        stock_sold INT DEFAULT 0,
+        measurements JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+    return res.status(200).json({ success: true, message: 'Table gandouras initialized correctly.', result });
+  } catch (error) {
+    console.error('Error initializing database:', error);
+    return res.status(500).json({ error: error.message });
+  }
+}
