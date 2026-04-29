@@ -63,6 +63,8 @@ export function ProductProvider({ children }) {
       const data = await res.json();
       if (data.success) {
         setProducts(prev => [{ ...newProduct, id: data.id, createdAt: new Date().toISOString() }, ...prev]);
+      } else {
+        window.alert("Erreur lors de l'ajout: " + (data.error || 'Erreur inconnue'));
       }
     } catch (e) {
       console.error(e)
@@ -142,13 +144,18 @@ export function ProductProvider({ children }) {
     }))
 
     try {
-      await fetch('/api/products', {
+      const res = await fetch('/api/products', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatePayload)
       });
+      const data = await res.json();
+      if (!data.success) {
+        window.alert("Erreur lors de la mise à jour: " + (data.error || 'Erreur inconnue'));
+      }
     } catch (e) {
       console.error(e)
+      window.alert("Erreur réseau lors de la mise à jour.");
     }
   }, [])
 

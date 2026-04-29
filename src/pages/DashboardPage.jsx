@@ -89,8 +89,8 @@ export default function DashboardPage({ onNavigate }) {
         <StatCard icon={TrendingUp}   label="Stock Restant"  value={stats.totalRemaining} color="#22c55e" delay={0.05} />
         <StatCard icon={TrendingDown} label="Vendus"         value={stats.totalSold}      color="#f59e0b" delay={0.1}  />
         <StatCard icon={AlertTriangle} label="Épuisés"       value={stats.outOfStock}     color="#ef4444" delay={0.15} />
-        <StatCard icon={Coins}         label="Ventes (DH)"   value={Math.round(salesStats.total_revenue)} color="#a855f7" delay={0.2} />
-        <StatCard icon={Wallet}        label="Bénéfice (DH)" value={Math.round(salesStats.total_profit)} color="#ec4899" delay={0.25} />
+        <StatCard icon={Coins}         label="Ventes (DH)"   value={Math.round(salesStats?.total_revenue || 0)} color="#a855f7" delay={0.2} />
+        <StatCard icon={Wallet}        label="Bénéfice (DH)" value={Math.round(salesStats?.total_profit || 0)} color="#ec4899" delay={0.25} />
       </div>
 
       {/* Smart Filters & Search */}

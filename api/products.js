@@ -6,8 +6,8 @@ export default async function handler(req, res) {
       if (req.query.type === 'stats') {
         const salesStats = await sql`
           SELECT 
-            COALESCE(SUM(sale_price), 0) as total_revenue,
-            COALESCE(SUM(profit), 0) as total_profit
+            CAST(COALESCE(SUM(sale_price), 0) AS FLOAT) as total_revenue,
+            CAST(COALESCE(SUM(profit), 0) AS FLOAT) as total_profit
           FROM sales;
         `;
         return res.status(200).json(salesStats.rows[0]);
