@@ -250,9 +250,11 @@ export default function AddProductForm({ onBack, initialProduct }) {
         setImageUrl(data.url)
       } else {
         console.error('Upload failed:', data.error)
+        window.alert("Erreur: L'image n'a pas pu être sauvegardée. Vérifiez que Vercel Blob est bien configuré et que vous avez fait un Redeploy. Erreur: " + (data.error || 'Inconnue'))
       }
     } catch (e) {
       console.error('Upload error:', e)
+      window.alert("Erreur réseau ou fichier trop volumineux (max 4.5MB).")
     } finally {
       setUploading(false)
     }
