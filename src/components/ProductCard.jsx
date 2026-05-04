@@ -34,20 +34,26 @@ function GlowBurst({ trigger, color }) {
 function LengthsSummary({ units }) {
   if (!units || units.length === 0) return null
   const lengths = units.map(u => u.length).filter(Boolean)
-  const unique   = [...new Set(lengths)].sort((a, b) => a - b)
-  const allSame  = unique.length === 1
+  const uniqueL  = [...new Set(lengths)].sort((a, b) => a - b)
+  
+  const chests  = units.map(u => u.chest).filter(c => c && c !== '—')
+  const uniqueC  = [...new Set(chests)].sort((a, b) => a - b)
 
-  if (allSame) return (
-    <span className="text-sm text-white/60 font-mono font-medium">Long. uniforme: {unique[0]} cm</span>
-  )
+  const allSameL = uniqueL.length === 1
+  const allSameC = uniqueC.length === 1
 
-  const display = unique.slice(0, 4).join(', ')
-  const more    = unique.length > 4 ? ` +${unique.length - 4}` : ''
   return (
-    <span className="text-sm text-white/60 font-mono font-medium flex items-center gap-1.5 mt-0.5">
-      <Layers size={14} />
-      {display}{more} cm
-    </span>
+    <div className="flex flex-col gap-0.5 mt-0.5">
+      <span className="text-[11px] text-white/60 font-mono font-medium flex items-center gap-1.5">
+        <Layers size={13} className="text-white/30" />
+        {allSameL ? `Long. uniforme: ${uniqueL[0]} cm` : `Long: ${uniqueL.slice(0, 3).join(', ')}${uniqueL.length > 3 ? '...' : ''} cm`}
+      </span>
+      {uniqueC.length > 0 && (
+        <span className="text-[11px] text-white/40 font-mono flex items-center gap-1.5 pl-4.5" style={{ paddingLeft: '19px' }}>
+          Poitrine: {allSameC ? `${uniqueC[0]} cm` : `${uniqueC.slice(0, 3).join(', ')}${uniqueC.length > 3 ? '...' : ''} cm`}
+        </span>
+      )}
+    </div>
   )
 }
 
@@ -68,13 +74,15 @@ function SizeBreakdown({ units }) {
     <div className="flex flex-wrap gap-1.5 mb-1">
       {entries.map(([size, count]) => {
         const st = styles[size] || { bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)', text: '#f59e0b' }
+        // Handle long size names in pills
+        const displaySize = size.split(' ')[0]
         return (
           <span
             key={size}
-            className="text-xs font-mono font-bold px-2 py-0.5 rounded-md"
+            className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md"
             style={{ background: st.bg, border: `1px solid ${st.border}`, color: st.text }}
           >
-            {size}×{count}
+            {displaySize}×{count}
           </span>
         )
       })}
@@ -525,10 +533,16 @@ export default function ProductCard({ product, index, onDelete, onSellOne, onEdi
                                 style={{ boxShadow: 'inset 0 0 15px rgba(0,242,255,0.1)' }} />
                             )}
 
-                            {/* Size Badge (Large) */}
-                            <div className="w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0"
+                            {/* Size Badge (Optimized for long text) */}
+                            <div className="w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0 p-1 text-center"
                               style={{ background: st.bg, border: `1px solid ${st.border}` }}>
-                              <span className="text-lg font-black font-mono leading-none" style={{ color: st.text }}>
+                              <span 
+                                className="font-black font-mono leading-tight tracking-tighter" 
+                                style={{ 
+                                  color: st.text,
+                                  fontSize: u.size.length > 3 ? '10px' : '18px'
+                                }}
+                              >
                                 {u.size}
                               </span>
                             </div>
