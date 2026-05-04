@@ -87,10 +87,26 @@ export default async function handler(req, res) {
           }
         }
 
-        await sql`
-          INSERT INTO public.sales (product_id, sale_price, cost, profit, unit_size, unit_index)
-          VALUES (${p.id}, ${price}, ${cost}, ${profit}, ${unitSize}, ${unitIndex})
-        `;
+        try {
+          await sql`
+            INSERT INTO public.sales (product_id, sale_price, cost, profit, unit_size, unit_index)
+            VALUES (${p.id}, ${price}, ${cost}, ${profit}, ${unitSize}, ${unitIndex})
+          `;
+        } catch (salesError) {
+          // If columns missing in sales table, add them and retry
+          if (salesError.message.includes('unit_size') || salesError.message.includes('unit_index') || salesError.message.includes('does not exist')) {
+             console.log('Auto-fixing missing columns in sales table...');
+             await sql`ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS unit_size VARCHAR(50) DEFAULT NULL;`;
+             await sql`ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS unit_index INT DEFAULT NULL;`;
+             // Retry insert
+             await sql`
+                INSERT INTO public.sales (product_id, sale_price, cost, profit, unit_size, unit_index)
+                VALUES (${p.id}, ${price}, ${cost}, ${profit}, ${unitSize}, ${unitIndex})
+              `;
+          } else {
+            throw salesError;
+          }
+        }
       } else {
         await sql`
           UPDATE public.gandouras 
