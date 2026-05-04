@@ -87,14 +87,26 @@ export function ProductProvider({ children }) {
     ))
     
     try {
-      await fetch('/api/products', {
+      const res = await fetch('/api/products', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, action: 'sell', stockSold: newSold, price, unitSize, unitIndex })
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to update sale on server');
+      }
+      
       fetchStats(); // Refresh financial stats
     } catch (e) {
       console.error(e)
+      alert("Erreur: Le serveur n'a pas pu enregistrer la vente (" + e.message + "). Veuillez actualiser la page.");
+      // Revert optimistic update
+      setProducts(prev => prev.map(p => p.id === id
+        ? { ...p, stockSold: target.stockSold, soldUnitIndices: target.soldUnitIndices }
+        : p
+      ))
     }
   }, [products, fetchStats])
 
