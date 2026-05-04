@@ -24,6 +24,7 @@ export default async function handler(req, res) {
         imageUrls: row.image_urls || [],
         stockInitial: row.stock_initial,
         stockSold: row.stock_sold,
+        soldUnitIndices: row.sold_unit_indices || [],
         units: row.measurements || [],
         createdAt: row.created_at,
       }));
@@ -34,8 +35,8 @@ export default async function handler(req, res) {
       const p = req.body;
       const id = p.id || `gnd-${Date.now()}`;
       await sql`
-        INSERT INTO public.gandouras (id, name, color, color_name, image_url, image_urls, stock_initial, stock_sold, measurements, created_at)
-        VALUES (${id}, ${p.name}, ${p.color}, ${p.colorName}, ${p.imageUrl}, ${JSON.stringify(p.imageUrls || [])}, ${p.stockInitial}, ${p.stockSold || 0}, ${JSON.stringify(p.units)}, NOW())
+        INSERT INTO public.gandouras (id, name, color, color_name, image_url, image_urls, stock_initial, stock_sold, measurements, sold_unit_indices, created_at)
+        VALUES (${id}, ${p.name}, ${p.color}, ${p.colorName}, ${p.imageUrl}, ${JSON.stringify(p.imageUrls || [])}, ${p.stockInitial}, ${p.stockSold || 0}, ${JSON.stringify(p.units)}, '[]'::jsonb, NOW())
       `;
       return res.status(201).json({ success: true, id });
     } 
@@ -48,12 +49,23 @@ export default async function handler(req, res) {
       if (p.action === 'sell') {
         const soldCount = p.stockSold;
         const price = parseFloat(p.price) || 0;
-        const cost = 50; // Fixed cost as per user request
+        const cost = 50;
         const profit = price - cost;
         const unitSize  = p.unitSize  || null;
         const unitIndex = p.unitIndex != null ? p.unitIndex : null;
 
-        await sql`UPDATE public.gandouras SET stock_sold = ${soldCount} WHERE id = ${p.id}`;
+        // Append unitIndex to sold_unit_indices array (if provided)
+        if (unitIndex !== null) {
+          await sql`
+            UPDATE public.gandouras
+            SET stock_sold = ${soldCount},
+                sold_unit_indices = sold_unit_indices || ${JSON.stringify([unitIndex])}::jsonb
+            WHERE id = ${p.id}
+          `;
+        } else {
+          await sql`UPDATE public.gandouras SET stock_sold = ${soldCount} WHERE id = ${p.id}`;
+        }
+
         await sql`
           INSERT INTO public.sales (product_id, sale_price, cost, profit, unit_size, unit_index)
           VALUES (${p.id}, ${price}, ${cost}, ${profit}, ${unitSize}, ${unitIndex})

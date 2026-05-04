@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Package2, TrendingDown, TrendingUp, AlertTriangle, PlusCircle, Search, Coins, Wallet } from 'lucide-react'
 import { useProducts } from '../hooks/useProducts'
 import ProductCard from '../components/ProductCard'
+import { computeRemaining } from '../utils/sizingEngine'
 
 const PROFILE_FILTERS = ['Tous', 'Standard', 'Long', 'Shortened']
 
@@ -52,6 +53,10 @@ export default function DashboardPage({ onNavigate }) {
   const [heightSearch, setHeightSearch] = useState('')
 
   const filtered = products.filter((p) => {
+    // Hide fully sold products from dashboard
+    const rem = computeRemaining(p.stockInitial, p.stockSold)
+    if (rem === 0) return false
+
     // If a product has no units, just check default
     if (!p.units || p.units.length === 0) return true
     

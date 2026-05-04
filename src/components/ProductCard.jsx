@@ -90,8 +90,8 @@ export default function ProductCard({ product, index, onDelete, onSellOne, onEdi
   const dominant   = dominantSize(product.units || [])
   const sizeSt     = dominant.style
   const isMixed    = dominant.size === 'Mix'
+  const soldIndices = new Set(product.soldUnitIndices || [])
   const isSoldOut  = remaining === 0
-  const hasImage   = !!product.imageUrl
 
   const [burstKey,      setBurstKey]      = useState(null)
   const [sellDisabled,  setSellDisabled]  = useState(false)
@@ -104,15 +104,17 @@ export default function ProductCard({ product, index, onDelete, onSellOne, onEdi
   const currentImg = urls[imgIndex]
   const hasImages = urls.length > 0
 
-  // Build list of selectable units from product.units
-  const availableUnits = (product.units || []).map((u, i) => ({
-    index:        i,
-    size:         u.size         || 'Custom',
-    personHeight: u.personHeight || '—',
-    profile:      u.profile      || '—',
-    length:       u.length       || '—',
-    chest:        u.chest        || '—',
-  }))
+  // Only show units that have NOT been sold yet
+  const availableUnits = (product.units || [])
+    .map((u, i) => ({
+      index:        i,
+      size:         u.size         || 'Custom',
+      personHeight: u.personHeight || '—',
+      profile:      u.profile      || '—',
+      length:       u.length       || '—',
+      chest:        u.chest        || '—',
+    }))
+    .filter(u => !soldIndices.has(u.index))
 
   const handleDownload = async (e) => {
     e.stopPropagation()

@@ -71,14 +71,20 @@ export function ProductProvider({ children }) {
     }
   }, [])
 
-  /** Sell one unit — increment stockSold by 1. */
+  /** Sell one unit — increment stockSold by 1 and mark unit index as sold. */
   const sellOne = useCallback(async (id, price, unitSize, unitIndex) => {
     const target = products.find(p => p.id === id);
     if (!target) return;
     const newSold = Math.min(target.stockSold + 1, target.stockInitial);
+    const newSoldIndices = unitIndex != null
+      ? [...(target.soldUnitIndices || []), unitIndex]
+      : (target.soldUnitIndices || [])
     
-    // Optimistic
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, stockSold: newSold } : p))
+    // Optimistic update — immediately reflect in UI
+    setProducts(prev => prev.map(p => p.id === id
+      ? { ...p, stockSold: newSold, soldUnitIndices: newSoldIndices }
+      : p
+    ))
     
     try {
       await fetch('/api/products', {

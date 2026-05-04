@@ -28,6 +28,15 @@ export default async function handler(req, res) {
       status.push('Error adding "image_urls": ' + e.message);
     }
 
+    // 2b. Add sold_unit_indices column — tracks which unit indices were sold
+    try {
+      await sql`ALTER TABLE public.gandouras ADD COLUMN IF NOT EXISTS sold_unit_indices JSONB DEFAULT '[]'::jsonb;`;
+      status.push('Column "sold_unit_indices" added/verified.');
+    } catch (e) {
+      console.error('Error adding sold_unit_indices:', e);
+      status.push('Error adding "sold_unit_indices": ' + e.message);
+    }
+
     // 3. Ensure sales table exists
     await sql`
       CREATE TABLE IF NOT EXISTS public.sales (
