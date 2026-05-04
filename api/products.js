@@ -59,7 +59,7 @@ export default async function handler(req, res) {
           await sql`
             UPDATE public.gandouras
             SET stock_sold = ${soldCount},
-                sold_unit_indices = sold_unit_indices || ${JSON.stringify([unitIndex])}::jsonb
+                sold_unit_indices = COALESCE(sold_unit_indices, '[]'::jsonb) || ${JSON.stringify([unitIndex])}::jsonb
             WHERE id = ${p.id}
           `;
         } else {

@@ -3,12 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../hooks/useAuth'
 import {
   LayoutDashboard, Package, PlusCircle, LogOut,
-  Zap, ChevronLeft, ChevronRight, Menu, X
+  Zap, ChevronLeft, ChevronRight, Menu, X, Archive
 } from 'lucide-react'
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'inventory', label: 'Inventaire', icon: Package },
+  { id: 'sold', label: 'Vendus', icon: Archive },
   { id: 'add', label: 'Ajouter', icon: PlusCircle },
 ]
 

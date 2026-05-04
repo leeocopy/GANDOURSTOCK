@@ -4,6 +4,7 @@ import { ProductProvider } from './hooks/useProducts'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import InventoryPage from './pages/InventoryPage'
+import SoldPage from './pages/SoldPage'
 import AddPage from './pages/AddPage'
 import Layout from './components/Layout'
 
@@ -31,6 +32,7 @@ function AppRoutes() {
     switch (currentPage) {
       case 'dashboard': return <DashboardPage onNavigate={handleNavigate} />
       case 'inventory': return <InventoryPage />
+      case 'sold':      return <SoldPage onNavigate={handleNavigate} />
       case 'add':       return <AddPage onNavigate={handleNavigate} />
       case 'edit':      return <AddPage onNavigate={handleNavigate} editingProduct={editingProduct} />
       default:          return <DashboardPage onNavigate={handleNavigate} />

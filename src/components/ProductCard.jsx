@@ -87,11 +87,25 @@ export default function ProductCard({ product, index, onDelete, onSellOne, onEdi
   const status     = getStockStatus(remaining, product.stockInitial)
   const stockPct   = product.stockInitial > 0 ? (remaining / product.stockInitial) * 100 : 0
   const floatCfg   = FLOAT_CONFIGS[index % FLOAT_CONFIGS.length]
-  const dominant   = dominantSize(product.units || [])
-  const sizeSt     = dominant.style
-  const isMixed    = dominant.size === 'Mix'
   const soldIndices = new Set(product.soldUnitIndices || [])
   const isSoldOut  = remaining === 0
+
+  // Build list of selectable units from product.units, filtering out sold ones
+  const availableUnits = (product.units || [])
+    .map((u, i) => ({
+      index:        i,
+      size:         u.size         || 'Custom',
+      personHeight: u.personHeight || '—',
+      profile:      u.profile      || '—',
+      length:       u.length       || '—',
+      chest:        u.chest        || '—',
+      sizing:       u.sizing,
+    }))
+    .filter(u => !soldIndices.has(u.index))
+
+  const dominant   = dominantSize(availableUnits)
+  const sizeSt     = dominant.style
+  const isMixed    = dominant.size === 'Mix'
 
   const [burstKey,      setBurstKey]      = useState(null)
   const [sellDisabled,  setSellDisabled]  = useState(false)
@@ -103,18 +117,6 @@ export default function ProductCard({ product, index, onDelete, onSellOne, onEdi
   const urls = product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls : (product.imageUrl ? [product.imageUrl] : [])
   const currentImg = urls[imgIndex]
   const hasImages = urls.length > 0
-
-  // Only show units that have NOT been sold yet
-  const availableUnits = (product.units || [])
-    .map((u, i) => ({
-      index:        i,
-      size:         u.size         || 'Custom',
-      personHeight: u.personHeight || '—',
-      profile:      u.profile      || '—',
-      length:       u.length       || '—',
-      chest:        u.chest        || '—',
-    }))
-    .filter(u => !soldIndices.has(u.index))
 
   const handleDownload = async (e) => {
     e.stopPropagation()
@@ -321,12 +323,12 @@ export default function ProductCard({ product, index, onDelete, onSellOne, onEdi
         </div>
 
         {/* Unit count badge */}
-        {product.units && product.units.length > 1 && (
+        {availableUnits.length > 1 && (
           <div
             className="absolute bottom-3 right-3 z-10 px-2 py-1 rounded-xl"
             style={{ background: 'rgba(5,7,10,0.7)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.08)' }}
           >
-            <span className="text-[9px] font-mono text-white/40">{product.units.length} pcs</span>
+            <span className="text-[9px] font-mono text-white/40">{availableUnits.length} pcs</span>
           </div>
         )}
       </div>
@@ -346,8 +348,8 @@ export default function ProductCard({ product, index, onDelete, onSellOne, onEdi
 
         {/* Size breakdown (if mixed) / lengths summary */}
         <div className="space-y-1.5">
-          {isMixed && <SizeBreakdown units={product.units} />}
-          <LengthsSummary units={product.units} />
+          {isMixed && <SizeBreakdown units={availableUnits} />}
+          <LengthsSummary units={availableUnits} />
         </div>
 
         {/* Stock bar */}
