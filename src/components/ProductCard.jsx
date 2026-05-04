@@ -490,10 +490,11 @@ export default function ProductCard({ product, index, onDelete, onSellOne, onEdi
                       Quelle taille a été vendue ?
                     </p>
 
-                    <div className="grid gap-2 max-h-52 overflow-y-auto pr-1"
-                      style={{ gridTemplateColumns: availableUnits.length <= 3 ? `repeat(${availableUnits.length}, 1fr)` : 'repeat(3, 1fr)' }}>
+                    <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto pr-1 custom-scrollbar">
                       {availableUnits.map((u) => {
                         const sizeColors = {
+                          S:    { bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.35)',  text: '#22c55e' },
+                          M:    { bg: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.35)',  text: '#3b82f6' },
                           L:    { bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.35)', text: '#f59e0b' },
                           XL:   { bg: 'rgba(0,242,255,0.10)',  border: 'rgba(0,242,255,0.30)',  text: '#00f2ff' },
                           XXL:  { bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.35)', text: '#a855f7' },
@@ -506,50 +507,68 @@ export default function ProductCard({ product, index, onDelete, onSellOne, onEdi
                           <motion.button
                             key={u.index}
                             onClick={() => setSelectedUnit(u)}
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.97 }}
-                            className="flex flex-col items-center p-3 rounded-xl text-center transition-all relative"
+                            whileHover={{ x: 4, background: 'rgba(255,255,255,0.05)' }}
+                            whileTap={{ scale: 0.98 }}
+                            className="flex items-center gap-4 p-3.5 rounded-2xl text-left transition-all relative group/unit"
                             style={isSelected ? {
-                              background: st.bg,
-                              border: `1.5px solid ${st.text}`,
-                              boxShadow: `0 0 16px ${st.text}30`,
+                              background: 'rgba(0,242,255,0.08)',
+                              border: '1px solid rgba(0,242,255,0.4)',
+                              boxShadow: '0 4px 20px rgba(0,242,255,0.15)',
                             } : {
-                              background: 'rgba(255,255,255,0.03)',
+                              background: 'rgba(255,255,255,0.02)',
                               border: '1px solid rgba(255,255,255,0.08)',
                             }}
                           >
-                            {/* Selected checkmark */}
+                            {/* Selection Glow */}
                             {isSelected && (
-                              <motion.div
-                                initial={{ scale: 0 }} animate={{ scale: 1 }}
-                                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black"
-                                style={{ background: st.text, color: '#000' }}
-                              >
-                                ✓
-                              </motion.div>
+                              <div className="absolute inset-0 rounded-2xl pointer-events-none" 
+                                style={{ boxShadow: 'inset 0 0 15px rgba(0,242,255,0.1)' }} />
                             )}
 
-                            {/* Size badge */}
-                            <span className="text-lg font-black font-mono leading-none mb-1.5"
-                              style={{ color: isSelected ? st.text : 'rgba(255,255,255,0.5)' }}>
-                              {u.size}
-                            </span>
-
-                            {/* Height */}
-                            <span className="text-[9px] font-mono text-white/30 leading-tight">{u.personHeight}</span>
-
-                            {/* Profile */}
-                            {u.profile !== '—' && (
-                              <span className="text-[8px] font-mono mt-0.5 px-1.5 py-0.5 rounded-md"
-                                style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.25)' }}>
-                                {u.profile}
+                            {/* Size Badge (Large) */}
+                            <div className="w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0"
+                              style={{ background: st.bg, border: `1px solid ${st.border}` }}>
+                              <span className="text-lg font-black font-mono leading-none" style={{ color: st.text }}>
+                                {u.size}
                               </span>
-                            )}
+                            </div>
 
-                            {/* Measurements */}
-                            <div className="mt-1.5 text-[8px] font-mono text-white/20 space-y-0.5">
-                              {u.length !== '—' && <div>L: {u.length} cm</div>}
-                              {u.chest  !== '—' && <div>P: {u.chest} cm</div>}
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-bold text-white/90">Unité #{u.index + 1}</span>
+                                {u.profile !== '—' && (
+                                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-white/5 text-white/40 border border-white/5">
+                                    {u.profile}
+                                  </span>
+                                )}
+                              </div>
+                              
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                                <span className="text-[10px] font-mono text-white/30 flex items-center gap-1">
+                                  <span className="w-1 h-1 rounded-full bg-white/20" />
+                                  Hauteur: <span className="text-white/60">{u.personHeight}</span>
+                                </span>
+                                {u.length !== '—' && (
+                                  <span className="text-[10px] font-mono text-white/30 flex items-center gap-1">
+                                    <span className="w-1 h-1 rounded-full bg-white/20" />
+                                    Long: <span className="text-white/60">{u.length}cm</span>
+                                  </span>
+                                )}
+                                {u.chest !== '—' && (
+                                  <span className="text-[10px] font-mono text-white/30 flex items-center gap-1">
+                                    <span className="w-1 h-1 rounded-full bg-white/20" />
+                                    Poitrine: <span className="text-white/60">{u.chest}cm</span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Selection Indicator */}
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                              isSelected ? 'bg-cyan-neon border-cyan-neon' : 'border-white/10'
+                            }`}>
+                              {isSelected && <span className="text-black text-[10px] font-black">✓</span>}
                             </div>
                           </motion.button>
                         )
