@@ -54,16 +54,37 @@ export default async function handler(req, res) {
         const unitSize  = p.unitSize  || null;
         const unitIndex = p.unitIndex != null ? p.unitIndex : null;
 
-        // Append unitIndex to sold_unit_indices array (if provided)
-        if (unitIndex !== null) {
-          await sql`
-            UPDATE public.gandouras
-            SET stock_sold = ${soldCount},
-                sold_unit_indices = COALESCE(sold_unit_indices, '[]'::jsonb) || ${JSON.stringify([unitIndex])}::jsonb
-            WHERE id = ${p.id}
-          `;
-        } else {
-          await sql`UPDATE public.gandouras SET stock_sold = ${soldCount} WHERE id = ${p.id}`;
+        try {
+          // Try to update with sold_unit_indices
+          if (unitIndex !== null) {
+            await sql`
+              UPDATE public.gandouras
+              SET stock_sold = ${soldCount},
+                  sold_unit_indices = COALESCE(sold_unit_indices, '[]'::jsonb) || ${JSON.stringify([unitIndex])}::jsonb
+              WHERE id = ${p.id}
+            `;
+          } else {
+            await sql`UPDATE public.gandouras SET stock_sold = ${soldCount} WHERE id = ${p.id}`;
+          }
+        } catch (dbError) {
+          // If column doesn't exist, try to add it and retry
+          if (dbError.message.includes('sold_unit_indices') || dbError.message.includes('does not exist')) {
+            console.log('Auto-fixing missing sold_unit_indices column...');
+            await sql`ALTER TABLE public.gandouras ADD COLUMN IF NOT EXISTS sold_unit_indices JSONB DEFAULT '[]'::jsonb;`;
+            // Retry the update
+            if (unitIndex !== null) {
+              await sql`
+                UPDATE public.gandouras
+                SET stock_sold = ${soldCount},
+                    sold_unit_indices = COALESCE(sold_unit_indices, '[]'::jsonb) || ${JSON.stringify([unitIndex])}::jsonb
+                WHERE id = ${p.id}
+              `;
+            } else {
+              await sql`UPDATE public.gandouras SET stock_sold = ${soldCount} WHERE id = ${p.id}`;
+            }
+          } else {
+            throw dbError;
+          }
         }
 
         await sql`

@@ -68,33 +68,12 @@ export default function DashboardPage({ onNavigate }) {
     })
   })
 
-  // Function to initialize DB
-  const handleInitDB = async () => {
-    try {
-      const res = await fetch('/api/db/init');
-      const text = await res.text();
-      alert("Mise à jour de la base de données terminée !\n\nRésultat : " + text);
-      window.location.reload();
-    } catch (err) {
-      alert("Erreur: " + err.message);
-    }
-  }
-
   return (
     <>
       {/* Page header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-gradient-cyan text-glow">Dashboard</h1>
-            <button 
-              onClick={handleInitDB}
-              className="px-2 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-bold hover:bg-red-500/30 transition-colors"
-              title="Cliquer ici si les ventes ne sont pas enregistrées"
-            >
-              Fix Database
-            </button>
-          </div>
+          <h1 className="text-xl font-bold text-gradient-cyan text-glow">Dashboard</h1>
           <p className="text-xs text-white/30 font-mono mt-0.5">
             {new Date().toLocaleDateString('fr-MA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
