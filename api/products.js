@@ -50,11 +50,13 @@ export default async function handler(req, res) {
         const price = parseFloat(p.price) || 0;
         const cost = 50; // Fixed cost as per user request
         const profit = price - cost;
+        const unitSize  = p.unitSize  || null;
+        const unitIndex = p.unitIndex != null ? p.unitIndex : null;
 
         await sql`UPDATE public.gandouras SET stock_sold = ${soldCount} WHERE id = ${p.id}`;
         await sql`
-          INSERT INTO public.sales (product_id, sale_price, cost, profit)
-          VALUES (${p.id}, ${price}, ${cost}, ${profit})
+          INSERT INTO public.sales (product_id, sale_price, cost, profit, unit_size, unit_index)
+          VALUES (${p.id}, ${price}, ${cost}, ${profit}, ${unitSize}, ${unitIndex})
         `;
       } else {
         await sql`

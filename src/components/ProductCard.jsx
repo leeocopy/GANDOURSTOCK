@@ -93,15 +93,26 @@ export default function ProductCard({ product, index, onDelete, onSellOne, onEdi
   const isSoldOut  = remaining === 0
   const hasImage   = !!product.imageUrl
 
-  const [burstKey,     setBurstKey]     = useState(null)
-  const [sellDisabled, setSellDisabled] = useState(false)
-  const [imgIndex,     setImgIndex]     = useState(0)
+  const [burstKey,      setBurstKey]      = useState(null)
+  const [sellDisabled,  setSellDisabled]  = useState(false)
+  const [imgIndex,      setImgIndex]      = useState(0)
   const [showSellModal, setShowSellModal] = useState(false)
-  const [sellPrice,    setSellPrice]    = useState('')
+  const [sellPrice,     setSellPrice]     = useState('')
+  const [selectedUnit,  setSelectedUnit]  = useState(null)
 
   const urls = product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls : (product.imageUrl ? [product.imageUrl] : [])
   const currentImg = urls[imgIndex]
   const hasImages = urls.length > 0
+
+  // Build list of selectable units from product.units
+  const availableUnits = (product.units || []).map((u, i) => ({
+    index:        i,
+    size:         u.size         || 'Custom',
+    personHeight: u.personHeight || '—',
+    profile:      u.profile      || '—',
+    length:       u.length       || '—',
+    chest:        u.chest        || '—',
+  }))
 
   const handleDownload = async (e) => {
     e.stopPropagation()
@@ -143,22 +154,31 @@ export default function ProductCard({ product, index, onDelete, onSellOne, onEdi
 
   const handleSell = () => {
     if (isSoldOut || sellDisabled) return
+    // Auto-select if only one unit
+    setSelectedUnit(availableUnits.length === 1 ? availableUnits[0] : null)
+    setSellPrice('')
     setShowSellModal(true)
   }
 
   const confirmSell = () => {
+    if (availableUnits.length > 0 && !selectedUnit) {
+      alert('Veuillez choisir la taille / unité vendue.')
+      return
+    }
     const price = parseFloat(sellPrice) || 0
     if (price <= 0) {
-      alert("Veuillez entrer un prix de vente valide.")
+      alert('Veuillez entrer un prix de vente valide.')
       return
     }
     setBurstKey(Date.now())
     setSellDisabled(true)
-    onSellOne(product.id, price)
+    onSellOne(product.id, price, selectedUnit?.size || null, selectedUnit?.index ?? null)
     setShowSellModal(false)
     setSellPrice('')
+    setSelectedUnit(null)
     setTimeout(() => setSellDisabled(false), 650)
   }
+
 
   return (
     <motion.div
@@ -426,50 +446,191 @@ export default function ProductCard({ product, index, onDelete, onSellOne, onEdi
       <AnimatePresence>
         {showSellModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowSellModal(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+              className="absolute inset-0 bg-black/70 backdrop-blur-md"
             />
+
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.88, y: 24 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-sm glass-card p-6 shadow-2xl border border-cyan-neon/20"
+              exit={{ opacity: 0, scale: 0.88, y: 24 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+              className="relative w-full max-w-md glass-card p-6 shadow-2xl"
+              style={{ border: '1px solid rgba(0,242,255,0.2)' }}
               onClick={e => e.stopPropagation()}
             >
-              <h3 className="text-lg font-bold text-gradient-cyan mb-2">Vendre ce produit</h3>
-              <p className="text-white/40 text-xs font-mono mb-6 uppercase tracking-wider">
-                Entrez le prix de vente final (DH)
-              </p>
-
-              <div className="space-y-4">
+              {/* Header */}
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(0,242,255,0.1)', border: '1px solid rgba(0,242,255,0.2)' }}>
+                  <ShoppingBag size={17} className="text-cyan-neon" />
+                </div>
                 <div>
-                  <label className="text-[10px] text-white/30 font-mono uppercase mb-1.5 block">Prix de Vente (DH)</label>
-                  <input
-                    autoFocus
-                    type="number"
-                    value={sellPrice}
-                    onChange={e => setSellPrice(e.target.value)}
-                    placeholder="ex: 150"
-                    className="input-glass w-full text-center text-xl font-bold py-3"
-                    onKeyDown={e => e.key === 'Enter' && confirmSell()}
-                  />
+                  <h3 className="text-base font-bold text-white leading-tight">{product.name}</h3>
+                  <p className="text-[10px] text-white/30 font-mono uppercase tracking-wider mt-0.5">
+                    Enregistrer une vente
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-5">
+
+                {/* ── STEP 1: Choose size unit ── */}
+                {availableUnits.length > 0 && (
+                  <div>
+                    <p className="text-[10px] text-white/40 font-mono uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                      <span className="w-4 h-4 rounded-full bg-cyan-neon/20 text-cyan-neon text-[9px] flex items-center justify-center font-bold">1</span>
+                      Quelle taille a été vendue ?
+                    </p>
+
+                    <div className="grid gap-2 max-h-52 overflow-y-auto pr-1"
+                      style={{ gridTemplateColumns: availableUnits.length <= 3 ? `repeat(${availableUnits.length}, 1fr)` : 'repeat(3, 1fr)' }}>
+                      {availableUnits.map((u) => {
+                        const sizeColors = {
+                          L:    { bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.35)', text: '#f59e0b' },
+                          XL:   { bg: 'rgba(0,242,255,0.10)',  border: 'rgba(0,242,255,0.30)',  text: '#00f2ff' },
+                          XXL:  { bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.35)', text: '#a855f7' },
+                          Custom:{ bg: 'rgba(255,255,255,0.06)',border: 'rgba(255,255,255,0.15)',text: '#ffffff99' },
+                        }
+                        const st = sizeColors[u.size] || sizeColors.Custom
+                        const isSelected = selectedUnit?.index === u.index
+
+                        return (
+                          <motion.button
+                            key={u.index}
+                            onClick={() => setSelectedUnit(u)}
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            className="flex flex-col items-center p-3 rounded-xl text-center transition-all relative"
+                            style={isSelected ? {
+                              background: st.bg,
+                              border: `1.5px solid ${st.text}`,
+                              boxShadow: `0 0 16px ${st.text}30`,
+                            } : {
+                              background: 'rgba(255,255,255,0.03)',
+                              border: '1px solid rgba(255,255,255,0.08)',
+                            }}
+                          >
+                            {/* Selected checkmark */}
+                            {isSelected && (
+                              <motion.div
+                                initial={{ scale: 0 }} animate={{ scale: 1 }}
+                                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black"
+                                style={{ background: st.text, color: '#000' }}
+                              >
+                                ✓
+                              </motion.div>
+                            )}
+
+                            {/* Size badge */}
+                            <span className="text-lg font-black font-mono leading-none mb-1.5"
+                              style={{ color: isSelected ? st.text : 'rgba(255,255,255,0.5)' }}>
+                              {u.size}
+                            </span>
+
+                            {/* Height */}
+                            <span className="text-[9px] font-mono text-white/30 leading-tight">{u.personHeight}</span>
+
+                            {/* Profile */}
+                            {u.profile !== '—' && (
+                              <span className="text-[8px] font-mono mt-0.5 px-1.5 py-0.5 rounded-md"
+                                style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.25)' }}>
+                                {u.profile}
+                              </span>
+                            )}
+
+                            {/* Measurements */}
+                            <div className="mt-1.5 text-[8px] font-mono text-white/20 space-y-0.5">
+                              {u.length !== '—' && <div>L: {u.length} cm</div>}
+                              {u.chest  !== '—' && <div>P: {u.chest} cm</div>}
+                            </div>
+                          </motion.button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── STEP 2: Price ── */}
+                <div>
+                  <p className="text-[10px] text-white/40 font-mono uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <span className="w-4 h-4 rounded-full bg-cyan-neon/20 text-cyan-neon text-[9px] flex items-center justify-center font-bold">
+                      {availableUnits.length > 0 ? '2' : '1'}
+                    </span>
+                    Prix de vente (DH)
+                  </p>
+                  <div className="relative">
+                    <input
+                      autoFocus={availableUnits.length === 0 || (availableUnits.length === 1)}
+                      type="number"
+                      min="0"
+                      value={sellPrice}
+                      onChange={e => setSellPrice(e.target.value)}
+                      placeholder="ex: 150"
+                      className="input-glass w-full text-center text-2xl font-black py-3.5 font-mono"
+                      style={{ letterSpacing: '0.05em' }}
+                      onKeyDown={e => e.key === 'Enter' && confirmSell()}
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/20 font-mono">DH</span>
+                  </div>
+
+                  {/* Profit preview */}
+                  {parseFloat(sellPrice) > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+                      className="mt-2 flex justify-between text-[10px] font-mono px-1"
+                    >
+                      <span className="text-white/25">Coût fixe: <span className="text-white/40">50 DH</span></span>
+                      <span className={parseFloat(sellPrice) - 50 >= 0 ? 'text-green-400' : 'text-red-400'}>
+                        Bénéfice: {Math.round(parseFloat(sellPrice) - 50)} DH
+                      </span>
+                    </motion.div>
+                  )}
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                {/* Summary line */}
+                {selectedUnit && (
+                  <motion.div
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-mono text-white/40"
+                    style={{ background: 'rgba(0,242,255,0.04)', border: '1px solid rgba(0,242,255,0.1)' }}
+                  >
+                    <ShoppingBag size={11} className="text-cyan-neon/50" />
+                    Taille sélectionnée:
+                    <span className="text-cyan-neon font-bold">{selectedUnit.size}</span>
+                    {selectedUnit.personHeight !== '—' && (
+                      <span className="text-white/25">· {selectedUnit.personHeight}</span>
+                    )}
+                  </motion.div>
+                )}
+
+                {/* Buttons */}
+                <div className="flex gap-3 pt-1">
                   <button
-                    onClick={() => setShowSellModal(false)}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white/40 hover:text-white transition-colors"
+                    onClick={() => { setShowSellModal(false); setSelectedUnit(null); setSellPrice('') }}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white/35 hover:text-white/70 transition-colors border border-white/6 hover:border-white/12"
                   >
                     Annuler
                   </button>
-                  <button
+                  <motion.button
                     onClick={confirmSell}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-cyan-neon text-black shadow-lg shadow-cyan-neon/20 hover:scale-105 active:scale-95 transition-all"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all"
+                    style={{
+                      background: (selectedUnit || availableUnits.length === 0) && parseFloat(sellPrice) > 0
+                        ? 'linear-gradient(135deg,#00f2ff,#0099ff)'
+                        : 'rgba(255,255,255,0.06)',
+                      color: (selectedUnit || availableUnits.length === 0) && parseFloat(sellPrice) > 0
+                        ? '#000'
+                        : 'rgba(255,255,255,0.2)',
+                    }}
                   >
-                    Confirmer
-                  </button>
+                    Confirmer la vente
+                  </motion.button>
                 </div>
               </div>
             </motion.div>

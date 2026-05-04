@@ -36,10 +36,22 @@ export default async function handler(req, res) {
         sale_price NUMERIC(10, 2) NOT NULL,
         cost NUMERIC(10, 2) DEFAULT 50.00,
         profit NUMERIC(10, 2) NOT NULL,
+        unit_size VARCHAR(50) DEFAULT NULL,
+        unit_index INT DEFAULT NULL,
         sold_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `;
     status.push('Table "public.sales" checked/created.');
+
+    // 4. Add unit_size column to existing sales table if it doesn't exist
+    try {
+      await sql`ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS unit_size VARCHAR(50) DEFAULT NULL;`;
+      await sql`ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS unit_index INT DEFAULT NULL;`;
+      status.push('Columns "unit_size" and "unit_index" added/verified on sales.');
+    } catch (e) {
+      console.error('Error adding unit columns to sales:', e);
+      status.push('Error adding unit columns: ' + e.message);
+    }
 
     return res.status(200).json({ 
       success: true, 

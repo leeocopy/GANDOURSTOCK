@@ -72,7 +72,7 @@ export function ProductProvider({ children }) {
   }, [])
 
   /** Sell one unit — increment stockSold by 1. */
-  const sellOne = useCallback(async (id, price) => {
+  const sellOne = useCallback(async (id, price, unitSize, unitIndex) => {
     const target = products.find(p => p.id === id);
     if (!target) return;
     const newSold = Math.min(target.stockSold + 1, target.stockInitial);
@@ -84,7 +84,7 @@ export function ProductProvider({ children }) {
       await fetch('/api/products', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, action: 'sell', stockSold: newSold, price })
+        body: JSON.stringify({ id, action: 'sell', stockSold: newSold, price, unitSize, unitIndex })
       });
       fetchStats(); // Refresh financial stats
     } catch (e) {
